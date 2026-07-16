@@ -1,0 +1,16 @@
+# UIL Prototype — Python dependencies
+# No external dependencies required for core pipeline (Python stdlib only)
+# Optional: install these for enhanced features
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# JSON schema validation (optional)
+jsonschema>=4.0.0
+
+# YAML support for SRAP assertion files (optional)
+pyyaml>=6.0
+
+# Type checking (development)
+mypy>=1.0.0

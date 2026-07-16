@@ -1,0 +1,127 @@
+{
+  "_comment": "UIL prototype worked example — §8 scenario from SCORED '26 paper",
+  "_description": "Enterprise inference service wrapping a third-party LLM behind a privacy-preserving gateway",
+  "context": "enclave-isolated TLS terminator + LLM gateway",
+  "distribution_type": "binary_external",
+  "sbom_quality": 0.85,
+
+  "components": [
+    {
+      "canonical_id": "pkg:generic/openssl@3.0.7",
+      "name": "openssl",
+      "version": "3.0.7",
+      "ecosystem": "generic",
+      "digest": "sha256:a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+      "licenses": ["Apache-2.0"],
+      "raw_format": "cyclonedx-1.5"
+    },
+    {
+      "canonical_id": "pkg:npm/lodash@4.17.21",
+      "name": "lodash",
+      "version": "4.17.21",
+      "ecosystem": "npm",
+      "licenses": ["MIT"],
+      "raw_format": "cyclonedx-1.5"
+    },
+    {
+      "canonical_id": "pkg:pypi/requests@2.31.0",
+      "name": "requests",
+      "version": "2.31.0",
+      "ecosystem": "pypi",
+      "licenses": ["Apache-2.0"],
+      "raw_format": "cyclonedx-1.5"
+    },
+    {
+      "canonical_id": "pkg:maven/log4j/log4j-core@2.17.1",
+      "name": "log4j-core",
+      "version": "2.17.1",
+      "ecosystem": "maven",
+      "licenses": ["Apache-2.0"],
+      "raw_format": "cyclonedx-1.5"
+    },
+    {
+      "canonical_id": "pkg:generic/llm-gateway-component@1.0.0",
+      "name": "llm-gateway-component",
+      "version": "1.0.0",
+      "ecosystem": "generic",
+      "licenses": ["MIT"],
+      "raw_format": "cyclonedx-1.5"
+    }
+  ],
+
+  "vulnerabilities": [
+    {
+      "cve_id": "CVE-2023-XXXX",
+      "component_id": "pkg:generic/openssl@3.0.7",
+      "status": "not_affected",
+      "justification": "Component sits behind TLS terminator trust boundary B-04; attack path not reachable",
+      "evidence_ref": "VEX:release-r1#CVE-2023-XXXX",
+      "source_format": "openvex"
+    },
+    {
+      "cve_id": "CVE-2021-44228",
+      "component_id": "pkg:maven/log4j/log4j-core@2.17.1",
+      "status": "not_affected",
+      "justification": "log4j-core 2.17.1 is not vulnerable to Log4Shell; patched version",
+      "evidence_ref": "VEX:release-r1#CVE-2021-44228",
+      "source_format": "cyclonedx-vex"
+    }
+  ],
+
+  "tpn": [
+    {
+      "component_id": "pkg:generic/openssl@3.0.7",
+      "license_spdx": "Apache-2.0",
+      "obligations": ["attribution"],
+      "attribution": "This product includes software developed by the OpenSSL Project."
+    },
+    {
+      "component_id": "pkg:npm/lodash@4.17.21",
+      "license_spdx": "MIT",
+      "obligations": ["attribution"]
+    },
+    {
+      "component_id": "pkg:pypi/requests@2.31.0",
+      "license_spdx": "Apache-2.0",
+      "obligations": ["attribution"]
+    },
+    {
+      "component_id": "pkg:maven/log4j/log4j-core@2.17.1",
+      "license_spdx": "Apache-2.0",
+      "obligations": ["attribution"]
+    },
+    {
+      "component_id": "pkg:generic/llm-gateway-component@1.0.0",
+      "license_spdx": "MIT",
+      "obligations": ["attribution"]
+    }
+  ],
+
+  "tmbom": [
+    {
+      "boundary_id": "TMBOM:B-04",
+      "description": "TLS terminator trust boundary — separates external network from internal gateway",
+      "component_ids": ["pkg:generic/openssl@3.0.7"],
+      "exposure_ids":  [],
+      "mitigations":   ["TMBOM:M-01-tls-termination"]
+    },
+    {
+      "boundary_id": "TMBOM:B-05",
+      "description": "LLM gateway input boundary — prompt sanitization and input validation",
+      "component_ids": ["pkg:generic/llm-gateway-component@1.0.0"],
+      "exposure_ids":  [],
+      "mitigations":   ["TMBOM:M-03-prompt-sanitization", "TMBOM:M-04-input-class-restriction"]
+    }
+  ],
+
+  "aivex": [
+    {
+      "component_id":   "pkg:generic/llm-gateway-component@1.0.0",
+      "risk_type":      "prompt_injection",
+      "cwe_id":         "CWE-1427",
+      "mitre_atlas_id": "AML.T0051.000",
+      "mitigation_ref": "TMBOM:M-03-prompt-sanitization",
+      "evidence_ref":   "AIVEX:A-09"
+    }
+  ]
+}

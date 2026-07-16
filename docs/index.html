@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UIL Prototype — Unified Intelligence Layer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;700;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:       #07080F;
+  --s1:       #0E1019;
+  --s2:       #141520;
+  --border:   #1E2030;
+  --muted:    #6272A4;
+  --text:     #F8F8F2;
+
+  /* Vivid palette */
+  --cyan:     #8BE9FD;
+  --green:    #50FA7B;
+  --yellow:   #F1FA8C;
+  --orange:   #FFB86C;
+  --red:      #FF5555;
+  --pink:     #FF79C6;
+  --purple:   #BD93F9;
+  --blue:     #6272A4;
+
+  /* Stage colours */
+  --c1: #8BE9FD;  /* cyan   — Normalization */
+  --c2: #BD93F9;  /* purple — Identity */
+  --c3: #FFB86C;  /* orange — Correlation */
+  --c4: #50FA7B;  /* green  — Assertion Store */
+  --c5: #FF79C6;  /* pink   — Policy Engine */
+
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',system-ui,sans-serif;
+}
+
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;overflow:hidden}
+
+/* ── HEADER ── */
+header{
+  padding:14px 24px;
+  display:flex;align-items:center;gap:16px;
+  background:linear-gradient(135deg,#0E0E1A 0%,#12101E 50%,#0E1219 100%);
+  border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+header::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,
+    rgba(139,233,253,.08) 0%,rgba(189,147,249,.08) 20%,
+    rgba(255,184,108,.08) 40%,rgba(80,250,123,.08) 60%,
+    rgba(255,121,198,.08) 80%,rgba(139,233,253,.08) 100%);
+  animation:shimmer 6s linear infinite;
+  pointer-events:none;
+}
+@keyframes shimmer{from{background-position:0 0}to{background-position:200% 0}}
+
+.logo{
+  font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.15em;
+  background:linear-gradient(135deg,var(--cyan),var(--purple),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  border:1px solid rgba(139,233,253,.3);padding:5px 12px;border-radius:6px;
+  background-color:rgba(139,233,253,.06);flex-shrink:0;
+}
+header h1{font-size:14px;font-weight:700;
+  background:linear-gradient(90deg,var(--text) 60%,var(--muted));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+header p{font-size:11px;color:var(--muted);margin-top:2px}
+.badge{
+  margin-left:auto;font-family:var(--mono);font-size:10px;
+  border:1px solid rgba(189,147,249,.4);color:var(--purple);
+  padding:3px 10px;border-radius:20px;
+  background:rgba(189,147,249,.08);flex-shrink:0;
+}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:310px 1fr;height:calc(100vh - 55px)}
+
+/* ── LEFT PANEL ── */
+.inputs{
+  border-right:1px solid var(--border);
+  overflow-y:auto;padding:16px;
+  display:flex;flex-direction:column;gap:16px;
+  background:var(--s1);
+}
+.inputs::-webkit-scrollbar{width:4px}
+.inputs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.panel-title{
+  font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+}
+.panel-title .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.panel-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.field{margin-bottom:8px}
+.field label{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-bottom:4px;letter-spacing:.03em}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--s2);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);font-family:var(--mono);
+  font-size:10px;padding:6px 9px;outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(139,233,253,.12)}
+.field textarea{resize:vertical;min-height:44px}
+option{background:var(--s2)}
+
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0}
+.toggle-row span{font-size:11px;color:var(--text)}
+.toggle{position:relative;width:36px;height:20px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--s2);border:1px solid var(--border);border-radius:20px;transition:.2s}
+.slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:2px;background:var(--muted);border-radius:50%;transition:.2s}
+.toggle input:checked+.slider{background:rgba(80,250,123,.15);border-color:var(--green)}
+.toggle input:checked+.slider::before{transform:translateX(15px);background:var(--green)}
+
+.run-btn{
+  width:100%;padding:11px;border:none;border-radius:8px;cursor:pointer;
+  font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.06em;
+  background:linear-gradient(135deg,var(--cyan),var(--purple),var(--pink));
+  color:#07080F;transition:opacity .15s,transform .1s;margin-top:4px;
+}
+.run-btn:hover{opacity:.9}
+.run-btn:active{opacity:.75;transform:scale(.98)}
+
+/* ── RIGHT PANEL ── */
+.right{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+
+/* ── PIPELINE ── */
+.pipeline{
+  padding:14px 20px;
+  background:linear-gradient(180deg,var(--s1) 0%,var(--bg) 100%);
+  border-bottom:1px solid var(--border);
+}
+.pipeline-stages{display:flex;align-items:center;gap:0;overflow-x:auto}
+.pipeline-stages::-webkit-scrollbar{height:0}
+
+.stage{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  min-width:105px;padding:10px 6px;border-radius:10px;
+  border:1px solid var(--border);background:var(--s2);
+  transition:all .35s cubic-bezier(.4,0,.2,1);position:relative;
+  overflow:hidden;
+}
+.stage::before{
+  content:'';position:absolute;inset:0;opacity:0;
+  transition:opacity .35s;border-radius:10px;
+}
+.stage.active::before{opacity:1}
+.stage.done::before{opacity:.6}
+
+.s1-color{--sc:var(--c1)}
+.s2-color{--sc:var(--c2)}
+.s3-color{--sc:var(--c3)}
+.s4-color{--sc:var(--c4)}
+.s5-color{--sc:var(--c5)}
+
+#stage-1::before{background:radial-gradient(ellipse at 50% 0%,rgba(139,233,253,.25) 0%,transparent 70%)}
+#stage-2::before{background:radial-gradient(ellipse at 50% 0%,rgba(189,147,249,.25) 0%,transparent 70%)}
+#stage-3::before{background:radial-gradient(ellipse at 50% 0%,rgba(255,184,108,.25) 0%,transparent 70%)}
+#stage-4::before{background:radial-gradient(ellipse at 50% 0%,rgba(80,250,123,.25) 0%,transparent 70%)}
+#stage-5::before{background:radial-gradient(ellipse at 50% 0%,rgba(255,121,198,.25) 0%,transparent 70%)}
+
+.stage.active{border-color:var(--sc);box-shadow:0 0 16px rgba(255,255,255,.08),0 0 0 1px rgba(255,255,255,.04)}
+#stage-1.active{border-color:var(--c1);box-shadow:0 0 20px rgba(139,233,253,.3)}
+#stage-2.active{border-color:var(--c2);box-shadow:0 0 20px rgba(189,147,249,.3)}
+#stage-3.active{border-color:var(--c3);box-shadow:0 0 20px rgba(255,184,108,.3)}
+#stage-4.active{border-color:var(--c4);box-shadow:0 0 20px rgba(80,250,123,.3)}
+#stage-5.active{border-color:var(--c5);box-shadow:0 0 20px rgba(255,121,198,.3)}
+
+#stage-1.done{border-color:rgba(139,233,253,.5)}
+#stage-2.done{border-color:rgba(189,147,249,.5)}
+#stage-3.done{border-color:rgba(255,184,108,.5)}
+#stage-4.done{border-color:rgba(80,250,123,.5)}
+#stage-5.done{border-color:rgba(255,121,198,.5)}
+
+.stage-num{font-family:var(--mono);font-size:8px;color:var(--muted);font-weight:700;letter-spacing:.1em}
+.stage-icon{font-size:20px}
+.stage-name{font-size:10px;font-weight:700;text-align:center;line-height:1.3}
+.stage-sub{font-size:8px;color:var(--muted);text-align:center;line-height:1.4}
+.stage-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:background .35s,box-shadow .35s}
+
+#stage-1.active .stage-dot,#stage-1.done .stage-dot{background:var(--c1);box-shadow:0 0 6px var(--c1)}
+#stage-2.active .stage-dot,#stage-2.done .stage-dot{background:var(--c2);box-shadow:0 0 6px var(--c2)}
+#stage-3.active .stage-dot,#stage-3.done .stage-dot{background:var(--c3);box-shadow:0 0 6px var(--c3)}
+#stage-4.active .stage-dot,#stage-4.done .stage-dot{background:var(--c4);box-shadow:0 0 6px var(--c4)}
+#stage-5.active .stage-dot,#stage-5.done .stage-dot{background:var(--c5);box-shadow:0 0 6px var(--c5)}
+
+#stage-1 .stage-name{color:var(--c1)}
+#stage-2 .stage-name{color:var(--c2)}
+#stage-3 .stage-name{color:var(--c3)}
+#stage-4 .stage-name{color:var(--c4)}
+#stage-5 .stage-name{color:var(--c5)}
+
+.arrow{
+  color:var(--border);font-size:18px;padding:0 3px;flex-shrink:0;
+  transition:color .3s,text-shadow .3s;
+}
+.arrow.lit-1{color:var(--c1);text-shadow:0 0 8px var(--c1)}
+.arrow.lit-2{color:var(--c2);text-shadow:0 0 8px var(--c2)}
+.arrow.lit-3{color:var(--c3);text-shadow:0 0 8px var(--c3)}
+.arrow.lit-4{color:var(--c4);text-shadow:0 0 8px var(--c4)}
+
+/* ── OUTPUT AREA ── */
+.output-area{flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+.out-panel{overflow-y:auto;padding:16px;border-right:1px solid var(--border)}
+.out-panel:last-child{border-right:none}
+.out-panel::-webkit-scrollbar{width:4px}
+.out-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── ASSERTION CARDS ── */
+.assertion-card{
+  border-radius:10px;margin-bottom:10px;overflow:hidden;
+  border:1px solid var(--border);
+  animation:slideIn .35s cubic-bezier(.4,0,.2,1);
+  position:relative;
+}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.assertion-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+}
+
+/* Claim-specific card colours */
+.card-NON_EXPLOITABLE{background:linear-gradient(135deg,rgba(80,250,123,.06) 0%,var(--s2) 60%);border-color:rgba(80,250,123,.25)}
+.card-NON_EXPLOITABLE::before{background:var(--green)}
+.card-REMEDIATION_REQUIRED{background:linear-gradient(135deg,rgba(255,85,85,.08) 0%,var(--s2) 60%);border-color:rgba(255,85,85,.3)}
+.card-REMEDIATION_REQUIRED::before{background:var(--red)}
+.card-LICENSE_COMPLIANT{background:linear-gradient(135deg,rgba(241,250,140,.05) 0%,var(--s2) 60%);border-color:rgba(241,250,140,.2)}
+.card-LICENSE_COMPLIANT::before{background:var(--yellow)}
+.card-LICENSE_REVIEW_REQUIRED{background:linear-gradient(135deg,rgba(255,184,108,.07) 0%,var(--s2) 60%);border-color:rgba(255,184,108,.25)}
+.card-LICENSE_REVIEW_REQUIRED::before{background:var(--orange)}
+.card-ELEVATED_THREAT{background:linear-gradient(135deg,rgba(255,85,85,.07) 0%,var(--s2) 60%);border-color:rgba(255,85,85,.25)}
+.card-ELEVATED_THREAT::before{background:linear-gradient(180deg,var(--red),var(--orange))}
+.card-AI_BEHAVIOR_RISK{background:linear-gradient(135deg,rgba(255,121,198,.07) 0%,var(--s2) 60%);border-color:rgba(255,121,198,.25)}
+.card-AI_BEHAVIOR_RISK::before{background:var(--pink)}
+.card-PROMPT_INJECTION_RISK_BOUNDED{background:linear-gradient(135deg,rgba(139,233,253,.06) 0%,var(--s2) 60%);border-color:rgba(139,233,253,.2)}
+.card-PROMPT_INJECTION_RISK_BOUNDED::before{background:var(--cyan)}
+
+.card-header{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 15px;border-bottom:1px solid var(--border)}
+.claim-badge{font-family:var(--mono);font-size:8px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:.06em;white-space:nowrap}
+.badge-NON_EXPLOITABLE{background:rgba(80,250,123,.18);color:var(--green);border:1px solid rgba(80,250,123,.35)}
+.badge-REMEDIATION_REQUIRED{background:rgba(255,85,85,.18);color:var(--red);border:1px solid rgba(255,85,85,.35)}
+.badge-LICENSE_COMPLIANT{background:rgba(241,250,140,.15);color:var(--yellow);border:1px solid rgba(241,250,140,.3)}
+.badge-LICENSE_REVIEW_REQUIRED{background:rgba(255,184,108,.18);color:var(--orange);border:1px solid rgba(255,184,108,.35)}
+.badge-ELEVATED_THREAT{background:rgba(255,85,85,.15);color:var(--red);border:1px solid rgba(255,85,85,.3)}
+.badge-AI_BEHAVIOR_RISK{background:rgba(255,121,198,.18);color:var(--pink);border:1px solid rgba(255,121,198,.35)}
+.badge-PROMPT_INJECTION_RISK_BOUNDED{background:rgba(139,233,253,.15);color:var(--cyan);border:1px solid rgba(139,233,253,.3)}
+
+.card-component{font-family:var(--mono);font-size:10px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conf-pill{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:20px;font-weight:700;flex-shrink:0}
+.conf-high{background:rgba(80,250,123,.18);color:var(--green);border:1px solid rgba(80,250,123,.3)}
+.conf-medium{background:rgba(255,184,108,.18);color:var(--orange);border:1px solid rgba(255,184,108,.3)}
+.conf-low{background:rgba(255,85,85,.15);color:var(--red);border:1px solid rgba(255,85,85,.3)}
+
+.card-body{padding:10px 12px 10px 15px;display:flex;flex-direction:column;gap:5px}
+.card-row{display:flex;gap:8px}
+.card-key{font-family:var(--mono);font-size:9px;color:var(--muted);width:68px;flex-shrink:0;padding-top:1px}
+.card-val{font-family:var(--mono);font-size:9px;color:var(--text);flex:1;word-break:break-all;line-height:1.6}
+.ev-link{color:var(--cyan)}
+.conf-bar{display:flex;gap:6px;align-items:center;margin-top:1px}
+.conf-track{flex:1;height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.conf-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.fill-high{background:linear-gradient(90deg,var(--green),var(--cyan))}
+.fill-medium{background:linear-gradient(90deg,var(--yellow),var(--orange))}
+.fill-low{background:linear-gradient(90deg,var(--red),var(--pink))}
+
+/* ── DECISION BANNER ── */
+.decision-banner{
+  border-radius:10px;padding:14px 16px;
+  display:flex;align-items:center;gap:14px;
+  margin-bottom:14px;animation:slideIn .35s ease;position:relative;overflow:hidden;
+}
+.decision-banner::before{content:'';position:absolute;inset:0;opacity:.07;background:var(--db-color)}
+.decision-APPROVE{--db-color:var(--green);border:1px solid rgba(80,250,123,.35)}
+.decision-BLOCK{--db-color:var(--red);border:1px solid rgba(255,85,85,.35)}
+.decision-RISK_ACCEPT_REQUIRED{--db-color:var(--orange);border:1px solid rgba(255,184,108,.35)}
+.decision-HUMAN_REVIEW{--db-color:var(--purple);border:1px solid rgba(189,147,249,.35)}
+
+.decision-icon{font-size:26px;filter:drop-shadow(0 0 8px currentColor);position:relative}
+.decision-label{font-family:var(--mono);font-size:13px;font-weight:700;position:relative}
+.decision-APPROVE .decision-label{color:var(--green)}
+.decision-BLOCK .decision-label{color:var(--red)}
+.decision-RISK_ACCEPT_REQUIRED .decision-label{color:var(--orange)}
+.decision-HUMAN_REVIEW .decision-label{color:var(--purple)}
+.decision-reason{font-size:11px;color:var(--muted);margin-top:3px;position:relative}
+
+/* ── JSON OUTPUT ── */
+.json-out{
+  background:var(--s1);border:1px solid var(--border);border-radius:10px;
+  padding:14px;font-family:var(--mono);font-size:10px;line-height:1.8;
+  white-space:pre;overflow-x:auto;color:var(--text);
+  margin-bottom:10px;animation:slideIn .35s ease;
+}
+.json-out::-webkit-scrollbar{height:4px}
+.json-out::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.jk{color:var(--purple)}
+.js{color:var(--green)}
+.jn{color:var(--cyan)}
+.jb{color:var(--orange)}
+
+/* ── COPY BUTTON ── */
+.copy-btn{
+  background:transparent;border:1px solid var(--border);color:var(--muted);
+  font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:20px;
+  cursor:pointer;margin-bottom:8px;float:right;transition:all .15s;
+}
+.copy-btn:hover{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 8px rgba(139,233,253,.2)}
+
+/* ── EMPTY STATE ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:180px;color:var(--muted);gap:8px;text-align:center}
+.empty-icon{font-size:36px;opacity:.3}
+.empty-text{font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">UIL</div>
+  <div>
+    <h1>Unified Intelligence Layer — Interactive Prototype</h1>
+    <p>Five-stage governance pipeline · Policy-as-code evaluation · Assertion Store · Audit Trail</p>
+  </div>
+  <a href="https://github.com/[AUTHOR]/uil-prototype" target="_blank" style="
+    margin-left:auto;
+    font-family:var(--mono);font-size:10px;
+    border:1px solid rgba(139,233,253,.35);color:var(--cyan);
+    padding:5px 14px;border-radius:20px;
+    background:rgba(139,233,253,.06);
+    text-decoration:none;
+    display:flex;align-items:center;gap:7px;
+    transition:all .15s;flex-shrink:0;
+    white-space:nowrap;
+  " onmouseover="this.style.background='rgba(139,233,253,.14)'" onmouseout="this.style.background='rgba(139,233,253,.06)'">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+    </svg>
+    Source Code on GitHub
+  </a>
+  
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: Inputs -->
+  <div class="inputs">
+
+    <div>
+      <div class="panel-title" style="color:var(--cyan)">
+        <span class="dot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan)"></span>Component
+      </div>
+      <div class="field">
+        <label>PURL / Component Reference</label>
+        <input type="text" id="purl" value="pkg:generic/openssl@3.0.7">
+      </div>
+      <div class="field">
+        <label>Deployment Context</label>
+        <input type="text" id="context" value="enclave-isolated TLS terminator + gateway">
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title" style="color:var(--red)">
+        <span class="dot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></span>Security Signals (σ_S)
+      </div>
+      <div class="field">
+        <label>CVE / Vulnerability ID</label>
+        <input type="text" id="cve" value="CVE-2023-XXXX">
+      </div>
+      <div class="field">
+        <label>VEX Status</label>
+        <select id="vex_status">
+          <option value="not_affected">not_affected — VEX suppresses</option>
+          <option value="affected">affected — exploitable</option>
+          <option value="fixed">fixed — patch available</option>
+          <option value="none">none — no VEX available</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>VEX Evidence Reference</label>
+        <input type="text" id="vex_ref" value="VEX:release-r1#CVE-2023-XXXX">
+      </div>
+      <div class="field">
+        <label>SBOM Quality (Q_artifact)</label>
+        <select id="sbom_quality">
+          <option value="0.95">Signed CycloneDX 1.5 · 0.95</option>
+          <option value="0.85" selected>Unsigned CycloneDX 1.5 · 0.85</option>
+          <option value="0.70">CycloneDX 1.2 · 0.70</option>
+          <option value="0.50">Manual SBOM · 0.50</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title" style="color:var(--orange)">
+        <span class="dot" style="background:var(--orange);box-shadow:0 0 6px var(--orange)"></span>Architectural Signals (σ_A)
+      </div>
+      <div class="toggle-row">
+        <span>TMBOM trust boundary present</span>
+        <label class="toggle"><input type="checkbox" id="tmbom" checked><span class="slider"></span></label>
+      </div>
+      <div class="field">
+        <label>TMBOM Boundary Reference</label>
+        <input type="text" id="tmbom_ref" value="TMBOM:B-04">
+      </div>
+      <div class="toggle-row">
+        <span>Component on sensitive trust boundary</span>
+        <label class="toggle"><input type="checkbox" id="elevated"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title" style="color:var(--yellow)">
+        <span class="dot" style="background:var(--yellow);box-shadow:0 0 6px var(--yellow)"></span>License Signals (σ_L)
+      </div>
+      <div class="field">
+        <label>License</label>
+        <select id="license">
+          <option value="permissive">Permissive (MIT / Apache-2.0 / BSD)</option>
+          <option value="copyleft_weak">Weak copyleft (LGPL / MPL)</option>
+          <option value="copyleft_strong">Strong copyleft (GPL-3.0 / AGPL)</option>
+          <option value="commercial">Commercial / proprietary</option>
+          <option value="unknown">Unknown / not specified</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Distribution Type</label>
+        <select id="distribution">
+          <option value="internal">Internal use only</option>
+          <option value="binary_external">Binary distribution — external customers</option>
+          <option value="saas">SaaS / hosted service</option>
+          <option value="oss">Open-source redistribution</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title" style="color:var(--pink)">
+        <span class="dot" style="background:var(--pink);box-shadow:0 0 6px var(--pink)"></span>AI Signals (σ_AI · AIVEX)
+      </div>
+      <div class="toggle-row">
+        <span>AI/ML component</span>
+        <label class="toggle"><input type="checkbox" id="is_ai"><span class="slider"></span></label>
+      </div>
+      <div class="field">
+        <label>AIVEX Risk Type</label>
+        <select id="ai_risk">
+          <option value="none">None / not applicable</option>
+          <option value="prompt_injection">Prompt injection (CWE-1427)</option>
+          <option value="prompt_bounded">Prompt injection — mitigated by TMBOM</option>
+          <option value="behavior_risk">Behavioral risk (adversarial input)</option>
+          <option value="training_risk">Training-data provenance concern</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>AIVEX Evidence Reference</label>
+        <input type="text" id="aivex_ref" placeholder="AIVEX:A-09">
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title" style="color:var(--purple)">
+        <span class="dot" style="background:var(--purple);box-shadow:0 0 6px var(--purple)"></span>Identity Resolution
+      </div>
+      <div class="field">
+        <label>Resolution Strategy</label>
+        <select id="id_strategy">
+          <option value="DIGEST">DIGEST — content hash match · Q=1.00</option>
+          <option value="EXACT_PURL" selected>EXACT_PURL — canonical match · Q=0.90</option>
+          <option value="NORMALIZED_COORDS">NORMALIZED_COORDS — type+name+ver · Q=0.75</option>
+          <option value="FUZZY_VERSION">FUZZY_VERSION — type+name only · Q=0.50</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title" style="color:var(--cyan)">
+        <span class="dot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan)"></span>Policy Engine (Φ_P)
+      </div>
+      <div class="field">
+        <label>Aggregation Strategy</label>
+        <select id="policy_type">
+          <option value="strict_veto">Strict veto — any block claim blocks release</option>
+          <option value="weighted">Weighted threshold — aggregate against τ_P</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Min. Confidence Threshold</label>
+        <select id="min_conf">
+          <option value="0.3">0.30 — permissive</option>
+          <option value="0.4" selected>0.40 — standard</option>
+          <option value="0.6">0.60 — strict</option>
+          <option value="0.8">0.80 — regulated</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="run-btn" onclick="runPipeline()">▶  Run UIL Pipeline</button>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+
+    <!-- Pipeline bar -->
+    <div class="pipeline">
+      <div class="pipeline-stages">
+        <div class="stage s1-color" id="stage-1">
+          <span class="stage-num">01</span>
+          <span class="stage-icon">⚙️</span>
+          <span class="stage-name">Normalization</span>
+          <span class="stage-sub">SPDX · CycloneDX<br>CSAF · OpenVEX</span>
+          <span class="stage-dot"></span>
+        </div>
+        <span class="arrow" id="arrow-1">→</span>
+        <div class="stage s2-color" id="stage-2">
+          <span class="stage-num">02</span>
+          <span class="stage-icon">🔍</span>
+          <span class="stage-name">Identity Resolution</span>
+          <span class="stage-sub">PURL · CPE · SWID<br>content digest</span>
+          <span class="stage-dot"></span>
+        </div>
+        <span class="arrow" id="arrow-2">→</span>
+        <div class="stage s3-color" id="stage-3">
+          <span class="stage-num">03</span>
+          <span class="stage-icon">🔗</span>
+          <span class="stage-name">Correlation Engine</span>
+          <span class="stage-sub">σ_S · σ_L · σ_A · σ_AI</span>
+          <span class="stage-dot"></span>
+        </div>
+        <span class="arrow" id="arrow-3">→</span>
+        <div class="stage s4-color" id="stage-4">
+          <span class="stage-num">04</span>
+          <span class="stage-icon">🗄️</span>
+          <span class="stage-name">Assertion Store</span>
+          <span class="stage-sub">evidence · confidence<br>timestamp</span>
+          <span class="stage-dot"></span>
+        </div>
+        <span class="arrow" id="arrow-4">→</span>
+        <div class="stage s5-color" id="stage-5">
+          <span class="stage-num">05</span>
+          <span class="stage-icon">⚖️</span>
+          <span class="stage-name">Policy Engine</span>
+          <span class="stage-sub">OPA / Rego · Φ_P<br>release decision</span>
+          <span class="stage-dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="output-area">
+      <div class="out-panel">
+        <div class="panel-title" style="color:var(--green)">
+          <span class="dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></span>Assertion Store
+        </div>
+        <div id="assertions-out">
+          <div class="empty"><div class="empty-icon">◎</div><div class="empty-text">Run the pipeline to generate assertions</div></div>
+        </div>
+      </div>
+
+      <div class="out-panel">
+        <div class="panel-title" style="color:var(--pink)">
+          <span class="dot" style="background:var(--pink);box-shadow:0 0 6px var(--pink)"></span>JSON Output · Audit Trail
+        </div>
+        <div id="json-out">
+          <div class="empty"><div class="empty-icon">{ }</div><div class="empty-text">Assertion Store JSON will appear here</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const Q_IDENTITY={DIGEST:1.00,EXACT_PURL:0.90,NORMALIZED_COORDS:0.75,FUZZY_VERSION:0.50,NONE:0.00};
+const confLabel=v=>v>=0.70?'high':v>=0.45?'medium':'low';
+
+function buildAssertions(){
+  const purl=document.getElementById('purl').value.trim()||'pkg:unknown/component@0.0.0';
+  const ctx=document.getElementById('context').value.trim()||'unspecified deployment context';
+  const cve=document.getElementById('cve').value.trim();
+  const vex=document.getElementById('vex_status').value;
+  const vexRef=document.getElementById('vex_ref').value.trim();
+  const sbomQ=parseFloat(document.getElementById('sbom_quality').value);
+  const hasTmbom=document.getElementById('tmbom').checked;
+  const tmbomRef=document.getElementById('tmbom_ref').value.trim();
+  const elevated=document.getElementById('elevated').checked;
+  const license=document.getElementById('license').value;
+  const dist=document.getElementById('distribution').value;
+  const isAI=document.getElementById('is_ai').checked;
+  const aiRisk=document.getElementById('ai_risk').value;
+  const aivexRef=document.getElementById('aivex_ref').value.trim();
+  const idStrat=document.getElementById('id_strategy').value;
+  const minConf=parseFloat(document.getElementById('min_conf').value);
+  const q_id=Q_IDENTITY[idStrat];
+  const ts=new Date().toISOString().replace(/\.\d{3}Z$/,'Z');
+  const assertions=[];
+
+  // σ_S security
+  if(cve){
+    let claim,evidence=[],q_corr,detail;
+    if(vex==='not_affected'){
+      claim='NON_EXPLOITABLE';q_corr=hasTmbom?0.95:0.80;
+      if(vexRef)evidence.push(vexRef);
+      if(hasTmbom&&tmbomRef)evidence.push(tmbomRef);
+      detail=hasTmbom?`${cve}: VEX not_affected; corroborated by TMBOM isolation at ${tmbomRef||'trust boundary'}.`:`${cve}: VEX asserts not_affected in this deployment context.`;
+    }else if(vex==='affected'){
+      claim='REMEDIATION_REQUIRED';q_corr=0.95;
+      if(vexRef)evidence.push(vexRef);
+      detail=`${cve}: VEX confirms exploitable. Patch or mitigation required before release.`;
+    }else if(vex==='fixed'){
+      claim='NON_EXPLOITABLE';q_corr=0.90;
+      if(vexRef)evidence.push(vexRef);
+      detail=`${cve}: Fixed in this version per VEX.`;
+    }else{
+      claim='REMEDIATION_REQUIRED';q_corr=0.55;
+      detail=`${cve}: No VEX available; treating as requiring remediation under conservative policy.`;
+    }
+    const conf=+(sbomQ*q_id*q_corr).toFixed(3);
+    if(conf>=minConf)assertions.push({component:purl,context:ctx,claim,dimension:'security',evidence,confidence:{q_artifact:sbomQ,q_identity:q_id,q_correlation:q_corr,overall:conf,label:confLabel(conf)},timestamp:ts,detail});
+  }
+
+  // σ_A architectural
+  if(elevated&&hasTmbom){
+    const q_corr=0.90,conf=+(0.85*q_id*q_corr).toFixed(3);
+    const evidence=tmbomRef?[tmbomRef]:[];
+    if(conf>=minConf)assertions.push({component:purl,context:ctx,claim:'ELEVATED_THREAT',dimension:'architecture',evidence,confidence:{q_artifact:0.85,q_identity:q_id,q_correlation:q_corr,overall:conf,label:confLabel(conf)},timestamp:ts,detail:`Component sits on sensitive trust boundary per TMBOM ${tmbomRef||''}.`});
+  }
+
+  // σ_L license
+  let licenseClaim,licenseDetail,licEvidence=['TPN:clause-auto'],licQcorr;
+  if(license==='permissive'){licenseClaim='LICENSE_COMPLIANT';licQcorr=0.95;licenseDetail=`Permissive license; compliant under ${dist} distribution.`;}
+  else if(license==='copyleft_strong'&&(dist==='binary_external'||dist==='oss')){licenseClaim='LICENSE_REVIEW_REQUIRED';licQcorr=0.90;licenseDetail=`Strong copyleft under ${dist}: legal review required.`;}
+  else if(license==='copyleft_weak'&&dist==='binary_external'){licenseClaim='LICENSE_REVIEW_REQUIRED';licQcorr=0.80;licenseDetail=`Weak copyleft under binary external distribution: attribution obligations require review.`;}
+  else if(license==='unknown'){licenseClaim='LICENSE_REVIEW_REQUIRED';licQcorr=0.60;licenseDetail=`License not specified in SBOM; legal review required before distribution.`;}
+  else{licenseClaim='LICENSE_COMPLIANT';licQcorr=0.85;licenseDetail=`License obligations assessed as compliant for ${dist} distribution.`;}
+  const licConf=+(0.88*q_id*licQcorr).toFixed(3);
+  if(licConf>=minConf)assertions.push({component:purl,context:ctx,claim:licenseClaim,dimension:'licensing',evidence:licEvidence,confidence:{q_artifact:0.88,q_identity:q_id,q_correlation:licQcorr,overall:licConf,label:confLabel(licConf)},timestamp:ts,detail:licenseDetail});
+
+  // σ_AI
+  if(isAI&&aiRisk!=='none'){
+    let claim,q_corr,evidence=[],detail;
+    if(aiRisk==='prompt_bounded'){
+      claim='PROMPT_INJECTION_RISK_BOUNDED';q_corr=hasTmbom?0.88:0.40;
+      if(aivexRef)evidence.push(aivexRef);if(hasTmbom&&tmbomRef)evidence.push(tmbomRef);
+      detail=`Prompt-injection susceptibility (CWE-1427) mitigated by TMBOM-defined input controls at ${tmbomRef||'gateway'}. Double evidence required.`;
+    }else if(aiRisk==='prompt_injection'){
+      claim='AI_BEHAVIOR_RISK';q_corr=0.85;
+      if(aivexRef)evidence.push(aivexRef);
+      detail=`Prompt-injection susceptibility (CWE-1427) documented; no TMBOM mitigation confirmed.`;
+    }else if(aiRisk==='behavior_risk'){
+      claim='AI_BEHAVIOR_RISK';q_corr=0.80;
+      if(aivexRef)evidence.push(aivexRef);
+      detail=`Adversarial-input behavioral risk documented in AIVEX for this deployment context.`;
+    }else{
+      claim='AI_BEHAVIOR_RISK';q_corr=0.70;
+      detail=`Training-data provenance concern; deployment risk requires assessment.`;
+    }
+    const aiConf=+(0.82*q_id*q_corr).toFixed(3);
+    if(aiConf>=minConf)assertions.push({component:purl,context:ctx,claim,dimension:'ai',evidence,confidence:{q_artifact:0.82,q_identity:q_id,q_correlation:q_corr,overall:aiConf,label:confLabel(aiConf)},timestamp:ts,detail});
+  }
+  return assertions;
+}
+
+function evaluatePolicy(assertions){
+  const minConf=parseFloat(document.getElementById('min_conf').value);
+  const blocks=assertions.filter(a=>a.claim==='REMEDIATION_REQUIRED'&&a.confidence.overall>=minConf);
+  const risks=assertions.filter(a=>['ELEVATED_THREAT','AI_BEHAVIOR_RISK'].includes(a.claim)&&a.confidence.overall>=minConf);
+  const lowConf=assertions.filter(a=>a.confidence.overall<minConf);
+  if(blocks.length>0)return{decision:'BLOCK',icon:'🚫',reason:`${blocks.length} blocking assertion(s): ${blocks.map(a=>a.claim).join(', ')}`};
+  if(risks.length>0)return{decision:'RISK_ACCEPT_REQUIRED',icon:'⚠️',reason:`${risks.length} risk assertion(s) require formal acceptance`};
+  if(lowConf.length>0)return{decision:'HUMAN_REVIEW',icon:'👤',reason:`${lowConf.length} assertion(s) below confidence threshold — routed to human review`};
+  return{decision:'APPROVE',icon:'✅',reason:`All ${assertions.length} assertion(s) clear policy thresholds`};
+}
+
+async function animateStages(){
+  for(let s=1;s<=5;s++){
+    document.getElementById(`stage-${s}`).className=`stage s${s}-color active`;
+    if(s>1)document.getElementById(`arrow-${s-1}`).className=`arrow lit-${s-1}`;
+    await new Promise(r=>setTimeout(r,300));
+  }
+  await new Promise(r=>setTimeout(r,180));
+  for(let s=1;s<=5;s++)document.getElementById(`stage-${s}`).className=`stage s${s}-color done`;
+}
+
+function renderCard(a){
+  const cl=confLabel(a.confidence.overall);
+  const fp=Math.round(a.confidence.overall*100);
+  const fillCls=cl==='high'?'fill-high':cl==='medium'?'fill-medium':'fill-low';
+  const ev=a.evidence.length?a.evidence.join(' · '):'no direct evidence pointer';
+  return`<div class="assertion-card card-${a.claim}">
+  <div class="card-header">
+    <span class="claim-badge badge-${a.claim}">${a.claim}</span>
+    <span class="card-component">${a.component}</span>
+    <span class="conf-pill conf-${cl}">${a.confidence.overall.toFixed(3)}</span>
+  </div>
+  <div class="card-body">
+    <div class="card-row"><span class="card-key">dimension</span><span class="card-val">${a.dimension}</span></div>
+    <div class="card-row"><span class="card-key">context</span><span class="card-val">${a.context}</span></div>
+    <div class="card-row"><span class="card-key">evidence</span><span class="card-val ev-link">${ev}</span></div>
+    <div class="card-row"><span class="card-key">detail</span><span class="card-val">${a.detail}</span></div>
+    <div class="card-row"><span class="card-key">confidence</span><span class="card-val">
+      <div class="conf-bar">
+        <div class="conf-track"><div class="conf-fill ${fillCls}" style="width:${fp}%"></div></div>
+        <span style="font-size:9px;color:var(--muted)">${fp}% · ${cl}</span>
+      </div>
+      Q_art=${a.confidence.q_artifact} · Q_id=${a.confidence.q_identity} · Q_corr=${a.confidence.q_correlation}
+    </span></div>
+    <div class="card-row"><span class="card-key">timestamp</span><span class="card-val" style="color:var(--muted)">${a.timestamp}</span></div>
+  </div>
+</div>`;
+}
+
+function highlight(raw){
+  return raw
+    .replace(/("[\w_]+")\s*:/g,'<span class="jk">$1</span>:')
+    .replace(/:\s*("(?:[^"\\]|\\.)*")/g,(_,m)=>`: <span class="js">${m}</span>`)
+    .replace(/:\s*(\d+\.?\d*\b)/g,`: <span class="jn">$1</span>`)
+    .replace(/:\s*(true|false)\b/g,`: <span class="jb">$1</span>`);
+}
+
+async function runPipeline(){
+  for(let s=1;s<=5;s++)document.getElementById(`stage-${s}`).className=`stage s${s}-color`;
+  for(let a=1;a<=4;a++)document.getElementById(`arrow-${a}`).className='arrow';
+  document.getElementById('assertions-out').innerHTML='<div class="empty"><div class="empty-icon" style="animation:spin 1s linear infinite">⚙</div><div class="empty-text">Processing...</div></div>';
+  document.getElementById('json-out').innerHTML='';
+  animateStages();
+  await new Promise(r=>setTimeout(r,1700));
+  const assertions=buildAssertions();
+  const pol=evaluatePolicy(assertions);
+  document.getElementById('assertions-out').innerHTML=assertions.length
+    ?assertions.map(renderCard).join('')
+    :'<div class="empty"><div class="empty-icon">◎</div><div class="empty-text">No assertions above confidence threshold</div></div>';
+  const payload={pipeline_version:'UIL-v0.1-SCORED26',policy_version:document.getElementById('policy_type').value+'-v1.0',timestamp:new Date().toISOString(),decision:pol.decision,decision_reason:pol.reason,assertions,audit:{assertion_count:assertions.length,block_count:assertions.filter(a=>a.claim==='REMEDIATION_REQUIRED').length,min_confidence:parseFloat(document.getElementById('min_conf').value),reproducible:true}};
+  const raw=JSON.stringify(payload,null,2);
+  const b64=btoa(unescape(encodeURIComponent(raw)));
+  document.getElementById('json-out').innerHTML=`
+<div class="decision-banner decision-${pol.decision}">
+  <span class="decision-icon">${pol.icon}</span>
+  <div><div class="decision-label">${pol.decision}</div><div class="decision-reason">${pol.reason}</div></div>
+</div>
+<button class="copy-btn" onclick="copyJSON(this,'${b64}')">Copy JSON</button>
+<div class="json-out">${highlight(raw)}</div>`;
+}
+
+function copyJSON(btn,b64){
+  navigator.clipboard.writeText(decodeURIComponent(escape(atob(b64)))).then(()=>{btn.textContent='Copied ✓';setTimeout(()=>btn.textContent='Copy JSON',1500)});
+}
+
+window.addEventListener('load',()=>setTimeout(runPipeline,500));
+</script>
+</body>
+</html>
