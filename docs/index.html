@@ -348,6 +348,35 @@ option{background:var(--s2)}
   <!-- LEFT: Inputs -->
   <div class="inputs">
 
+    <!-- Load scenario -->
+    <div>
+      <div class="panel-title" style="color:var(--purple)">
+        <span class="dot" style="background:var(--purple);box-shadow:0 0 6px var(--purple)"></span>Load Scenario
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="
+          flex:1;padding:9px 12px;border-radius:8px;cursor:pointer;text-align:center;
+          border:1px dashed rgba(189,147,249,.4);color:var(--purple);
+          background:rgba(189,147,249,.06);font-size:11px;font-weight:600;
+          transition:all .15s;display:block;
+        " onmouseover="this.style.background='rgba(189,147,249,.14)'"
+           onmouseout="this.style.background='rgba(189,147,249,.06)'">
+          📂 Load JSON Scenario
+          <input type="file" accept=".json" style="display:none" onchange="loadScenario(this)">
+        </label>
+        <button onclick="loadExample()" style="
+          padding:9px 12px;border-radius:8px;cursor:pointer;
+          border:1px solid rgba(139,233,253,.3);color:var(--cyan);
+          background:rgba(139,233,253,.06);font-size:11px;font-weight:600;
+          transition:all .15s;white-space:nowrap;
+        " onmouseover="this.style.background='rgba(139,233,253,.14)'"
+           onmouseout="this.style.background='rgba(139,233,253,.06)'">
+          ⚡ Load §8 Example
+        </button>
+      </div>
+      <div id="load-status" style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px;min-height:14px"></div>
+    </div>
+
     <div>
       <div class="panel-title" style="color:var(--cyan)">
         <span class="dot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan)"></span>Component
@@ -746,6 +775,116 @@ async function runPipeline(){
 
 function copyJSON(btn,b64){
   navigator.clipboard.writeText(decodeURIComponent(escape(atob(b64)))).then(()=>{btn.textContent='Copied ✓';setTimeout(()=>btn.textContent='Copy JSON',1500)});
+}
+
+// ── Load scenario from JSON file ──
+function loadScenario(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const s=JSON.parse(e.target.result);
+      applyScenario(s);
+      document.getElementById('load-status').textContent='✓ Loaded: '+file.name;
+      document.getElementById('load-status').style.color='var(--green)';
+      setTimeout(runPipeline,300);
+    }catch(err){
+      document.getElementById('load-status').textContent='✗ Invalid JSON: '+err.message;
+      document.getElementById('load-status').style.color='var(--red)';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Load built-in §8 worked example ──
+function loadExample(){
+  const scenario={
+    context:"enclave-isolated TLS terminator + LLM gateway",
+    distribution_type:"binary_external",
+    sbom_quality:0.85,
+    components:[{canonical_id:"pkg:generic/openssl@3.0.7",name:"openssl",version:"3.0.7",ecosystem:"generic",digest:"sha256:a1b2c3d4"}],
+    vulnerabilities:[{cve_id:"CVE-2023-XXXX",component_id:"pkg:generic/openssl@3.0.7",status:"not_affected",evidence_ref:"VEX:release-r1#CVE-2023-XXXX"}],
+    tpn:[{component_id:"pkg:generic/openssl@3.0.7",license_spdx:"Apache-2.0"}],
+    tmbom:[{boundary_id:"TMBOM:B-04",description:"TLS terminator trust boundary",component_ids:["pkg:generic/openssl@3.0.7"],exposure_ids:[],mitigations:["TMBOM:M-01"]}],
+    aivex:[],
+    id_strategy:"EXACT_PURL",
+    policy_type:"strict_veto",
+    min_confidence:0.40
+  };
+  applyScenario(scenario);
+  document.getElementById('load-status').textContent='✓ Loaded: SCORED '26 §8 worked example';
+  document.getElementById('load-status').style.color='var(--green)';
+  setTimeout(runPipeline,300);
+}
+
+// ── Apply scenario object to form fields ──
+function applyScenario(s){
+  // Component
+  if(s.components&&s.components.length>0){
+    const c=s.components[0];
+    document.getElementById('purl').value=c.canonical_id||'';
+  }
+  if(s.context) document.getElementById('context').value=s.context;
+
+  // Security
+  if(s.vulnerabilities&&s.vulnerabilities.length>0){
+    const v=s.vulnerabilities[0];
+    document.getElementById('cve').value=v.cve_id||'';
+    document.getElementById('vex_status').value=v.status||'not_affected';
+    document.getElementById('vex_ref').value=v.evidence_ref||'';
+  }
+  if(s.sbom_quality){
+    const sq=document.getElementById('sbom_quality');
+    const val=s.sbom_quality.toString();
+    for(let o of sq.options){if(o.value===val){sq.value=val;break;}}
+  }
+
+  // Architecture
+  if(s.tmbom&&s.tmbom.length>0){
+    const b=s.tmbom[0];
+    document.getElementById('tmbom').checked=true;
+    document.getElementById('tmbom_ref').value=b.boundary_id||'';
+    document.getElementById('elevated').checked=(b.exposure_ids&&b.exposure_ids.length>0);
+  }
+
+  // License
+  if(s.tpn&&s.tpn.length>0){
+    const t=s.tpn[0];
+    const lic=t.license_spdx||'';
+    const sel=document.getElementById('license');
+    if(lic.match(/MIT|Apache|BSD|ISC/i)) sel.value='permissive';
+    else if(lic.match(/LGPL|MPL/i)) sel.value='copyleft_weak';
+    else if(lic.match(/GPL|AGPL/i)) sel.value='copyleft_strong';
+    else if(lic.match(/commercial|proprietary/i)) sel.value='commercial';
+    else sel.value='unknown';
+  }
+  if(s.distribution_type){
+    const dm={binary_external:'binary_external',internal:'internal',saas:'saas',oss:'oss'};
+    document.getElementById('distribution').value=dm[s.distribution_type]||'binary_external';
+  }
+
+  // AI
+  if(s.aivex&&s.aivex.length>0){
+    const a=s.aivex[0];
+    document.getElementById('is_ai').checked=true;
+    if(a.risk_type==='prompt_injection') document.getElementById('ai_risk').value='prompt_injection';
+    else if(a.risk_type==='prompt_bounded') document.getElementById('ai_risk').value='prompt_bounded';
+    else if(a.risk_type==='behavior_risk') document.getElementById('ai_risk').value='behavior_risk';
+    document.getElementById('aivex_ref').value=a.evidence_ref||'';
+  } else {
+    document.getElementById('is_ai').checked=false;
+    document.getElementById('ai_risk').value='none';
+  }
+
+  // Identity + policy
+  if(s.id_strategy) document.getElementById('id_strategy').value=s.id_strategy;
+  if(s.policy_type) document.getElementById('policy_type').value=s.policy_type;
+  if(s.min_confidence){
+    const mc=document.getElementById('min_conf');
+    const val=s.min_confidence.toString();
+    for(let o of mc.options){if(o.value===val){mc.value=val;break;}}
+  }
 }
 
 window.addEventListener('load',()=>setTimeout(runPipeline,500));
